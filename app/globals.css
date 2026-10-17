@@ -5,12 +5,16 @@
   --color-ink: #232325;
   --color-muted: #77767c;
   --color-paper: #faf9f6;
+  --color-surface: #ffffff;
+  --color-subtle: #f4f3ef;
   --color-line: #eae8e3;
   --color-accent: #e66746;
   --color-accent-soft: #fff0e9;
 }
 
 :root { color-scheme: light; }
+.dark { color-scheme: dark; --color-paper: #191a1c; --color-surface: #212225; --color-subtle: #2a2b2f; --color-ink: #f0eeea; --color-muted: #a3a1a9; --color-line: #34353a; --color-accent-soft: #412e28; }
+@custom-variant dark (&:where(.dark, .dark *));
 body { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-sans); }
 button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 button, a { touch-action: manipulation; }
@@ -18,4 +22,8 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 ::selection { background: #f7d3c7; }
 :focus-visible { outline: 3px solid #e66746; outline-offset: 4px; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #c9c7c1 transparent; }
+.canvas-grid { background-image: radial-gradient(#bab8b1 1px, transparent 1px); background-size: 20px 20px; }
+.animate-enter { animation: enter .25s ease-out both; }
+@keyframes enter { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

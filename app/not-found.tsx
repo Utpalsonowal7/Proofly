@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { Logo } from "@/components/ui";
+export default function NotFound() { return <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6"><Logo/><p className="mt-12 text-xs text-muted">A LITTLE OFF THE BEATEN PATH / 404</p><h1 className="mt-4 text-5xl font-medium tracking-[-.055em]">This page took<br/>a different direction.</h1><p className="mt-5 text-sm leading-relaxed text-muted">The page you’re looking for may have moved, or the link is no longer available.</p><Link href="/demo" className="mt-8 w-fit rounded-xl bg-ink px-5 py-3 text-sm text-surface">Back to a familiar space →</Link></main>; }
