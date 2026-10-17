@@ -1,0 +1,26 @@
+name: proofly
+services:
+  migrate:
+    image: ${PROOFLY_MIGRATION_IMAGE:?Set PROOFLY_MIGRATION_IMAGE to a commit-tagged migration image}
+    env_file: .env.production
+    volumes:
+      - ./certs:/run/certs:ro
+    restart: "no"
+  app:
+    image: ${PROOFLY_IMAGE:?Set PROOFLY_IMAGE to a commit-tagged application image}
+    env_file: .env.production
+    volumes:
+      - ./certs:/run/certs:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

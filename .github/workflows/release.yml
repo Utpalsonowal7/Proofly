@@ -1,0 +1,87 @@
+name: Build and deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+  publish:
+    name: Publish immutable container images
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          target: runner
+          push: true
+          tags: ${{ steps.image.outputs.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          target: migrate
+          push: true
+          tags: ${{ steps.image.outputs.name }}-migrate:${{ github.sha }}
+          cache-from: type=gha
+  deploy:
+    name: Deploy and verify EC2
+    needs: publish
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      IMAGE: ${{ needs.publish.outputs.image }}
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/proofly_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/proofly_deploy ~/.ssh/known_hosts
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_USER" && test -s ~/.ssh/known_hosts
+      - name: Transfer deployment configuration
+        shell: bash
+        run: |
+          scp -i ~/.ssh/proofly_deploy -o StrictHostKeyChecking=yes compose.production.yaml "$DEPLOY_USER@$DEPLOY_HOST:/opt/proofly/compose.production.yaml"
+          scp -i ~/.ssh/proofly_deploy -o StrictHostKeyChecking=yes scripts/deploy.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/proofly/scripts/deploy.sh"
+      - name: Deploy commit and verify readiness
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/proofly_deploy -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /opt/proofly/scripts/deploy.sh '$IMAGE:$RELEASE_SHA' '$IMAGE-migrate:$RELEASE_SHA'"
+      - name: Remove SSH identity
+        if: always()
+        run: rm -f ~/.ssh/proofly_deploy

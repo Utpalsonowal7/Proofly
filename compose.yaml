@@ -1,0 +1,48 @@
+name: proofly
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: proofly
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-proofly-local-only}
+      POSTGRES_DB: proofly
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U proofly -d proofly"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://proofly:${POSTGRES_PASSWORD:-proofly-local-only}@db:5432/proofly
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+  app:
+    build:
+      context: .
+      target: runner
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://proofly:${POSTGRES_PASSWORD:-proofly-local-only}@db:5432/proofly
+      TRUST_PROXY: "false"
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+volumes:
+  database:
