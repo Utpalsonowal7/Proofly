@@ -9,10 +9,10 @@ import type { Asset, AssetVersion, Comment, Decision, Project } from "@/lib/type
 export type NewComment = { body: string; x: number | null; y: number | null; parentId?: string | null; authorName?: string };
 type Props = {
   project: Project; assets: Asset[]; comments: Comment[]; initialAssetId: string;
-  canEdit: boolean; allowComments?: boolean; guest?: boolean;
+  canEdit: boolean; canDecide?: boolean; allowComments?: boolean; guest?: boolean;
   onClose: () => void; onComment: (versionId: string, values: NewComment) => Promise<void>;
   onResolve: (commentId: string, resolved: boolean) => Promise<void>;
-  onDecision: (versionId: string, decision: Decision) => Promise<void>;
+  onDecision: (versionId: string, decision: Decision, authorName?: string) => Promise<void>;
   onUpload?: (assetId: string) => void;
 };
 
@@ -76,7 +76,8 @@ function ReviewAsset({ asset, onSelectAsset, ...props }: Props & { asset: Asset;
     } catch (error) { toast((error as Error).message, true); } finally { setBusy(false); }
   }
   async function decide(decision: Decision) {
-    setBusy(true); try { await props.onDecision(version.id, decision); toast(decision === "approved" ? "This version is approved. Looking good!" : "Changes requested for this version."); } catch (e) { toast((e as Error).message, true); } finally { setBusy(false); }
+    if (props.guest && guestName.trim().length < 2) { toast("Add your name above before making a review decision.", true); return; }
+    setBusy(true); try { await props.onDecision(version.id, decision, props.guest ? guestName.trim() : undefined); toast(decision === "approved" ? "This version is approved. Looking good!" : "Changes requested for this version."); } catch (e) { toast((e as Error).message, true); } finally { setBusy(false); }
   }
   function selectComment(id: string) { setSelected(id); setFilter("all"); setMobileComments(true); setTimeout(() => document.getElementById(`thread-${id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 60); }
 
@@ -134,7 +135,7 @@ function ReviewAsset({ asset, onSelectAsset, ...props }: Props & { asset: Asset;
           {props.guest && <input aria-label="Your name" required maxLength={80} value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Your name" className={`${inputClass} mb-2 min-h-9 py-2 text-xs`}/>}
           <div className="rounded-xl border border-line bg-paper p-2"><textarea ref={textarea} aria-label={replyTo ? "Your reply" : "Your feedback"} required maxLength={4000} rows={3} value={body} onChange={e => setBody(e.target.value)} placeholder={replyTo ? "Keep the conversation going…" : "What are your thoughts?"} className="w-full resize-none bg-transparent px-1 pt-1 text-xs leading-relaxed outline-none placeholder:text-muted"/><div className="flex items-center justify-between"><span className="px-1 text-[10px] text-muted">Kind words. Clear feedback.</span><Button type="submit" loading={busy} disabled={!body.trim() || (props.guest && !guestName.trim())} className="min-h-8 rounded-lg px-2.5 py-1.5 text-[11px]"><Send className="size-3"/>Send</Button></div></div>
         </form>}
-        {props.canEdit && isLatest && <div className="border-t border-line bg-paper p-4"><p className="mb-3 text-[11px] text-muted">{version.decision === "approved" ? "Approved. Ready for the next chapter." : "Ready to move this version forward?"}</p><div className="flex gap-2"><Button variant="secondary" className="min-h-9 flex-1 px-2 text-[11px]" loading={busy} disabled={version.decision === "changes_requested"} onClick={() => decide("changes_requested")}>Request changes</Button><Button className="min-h-9 flex-1 bg-[#5d7657] px-2 text-[11px] text-white" loading={busy} disabled={version.decision === "approved"} onClick={() => decide("approved")}><Check className="size-3.5"/>{version.decision === "approved" ? "Approved" : "Approve"}</Button></div></div>}
+        {(props.canDecide ?? props.canEdit) && isLatest && <div className="border-t border-line bg-paper p-4"><p className="mb-3 text-[11px] text-muted">{version.decision === "approved" ? "Approved. Ready for the next chapter." : "Ready to move this version forward?"}</p><div className="flex gap-2"><Button variant="secondary" className="min-h-9 flex-1 px-2 text-[11px]" loading={busy} disabled={version.decision === "changes_requested"} onClick={() => decide("changes_requested")}>Request changes</Button><Button className="min-h-9 flex-1 bg-[#5d7657] px-2 text-[11px] text-white" loading={busy} disabled={version.decision === "approved"} onClick={() => decide("approved")}><Check className="size-3.5"/>{version.decision === "approved" ? "Approved" : "Approve"}</Button></div></div>}
         {!props.canEdit && <div className="border-t border-line p-4 text-[11px] leading-relaxed text-muted">{props.guest ? "You’re reviewing a shared project. Your feedback stays with this version." : "You have view access to this workspace."}</div>}
       </aside>
     </div>

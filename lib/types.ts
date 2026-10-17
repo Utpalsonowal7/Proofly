@@ -19,6 +19,7 @@ export type Comment = {
 export type Activity = { id: string; title: string; detail: string; createdAt: string };
 export type WorkspaceData = {
   user: User; workspace: { id: string; name: string; role: Role };
+  workspaces: { id: string; name: string; role: Role }[];
   members: Member[]; projects: Project[]; assets: Asset[]; comments: Comment[]; activity: Activity[];
 };
 export type ReviewData = {

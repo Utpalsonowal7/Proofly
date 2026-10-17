@@ -14,6 +14,7 @@ export function createDemoData(): WorkspaceData {
   return {
     user: { id: "demo-user", name: "Utpal Sonowal", email: "utpal@example.com" },
     workspace: { id: "demo-workspace", name: "Studio workspace", role: "owner" },
+    workspaces: [{ id: "demo-workspace", name: "Studio workspace", role: "owner" }],
     members: [ { id: "demo-user", name: "Utpal Sonowal", email: "utpal@example.com", role: "owner" }, { id: "demo-maya", name: "Maya Chen", email: "maya@example.com", role: "editor" }, { id: "demo-james", name: "James Lee", email: "james@example.com", role: "viewer" } ],
     projects,
     assets: projects.map((p, i) => ({
