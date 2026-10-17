@@ -12,7 +12,12 @@ import {
   verifyPassword,
 } from "../lib/server/security";
 import { commentSchema, projectSchema, uploadSchema } from "../lib/server/validation";
-import { detectImageType, uploadConditions, type UploadRecord } from "../lib/server/storage";
+import {
+  detectImageType,
+  orientedDimensions,
+  uploadConditions,
+  type UploadRecord,
+} from "../lib/server/storage";
 
 process.env.APP_URL = "http://localhost:3000";
 test("passwords use independent salts and reject incorrect or malformed hashes", async () => {
@@ -133,4 +138,9 @@ test("presigned upload policy binds both content type and exact file length", ()
     ["eq", "$Content-Type", "image/png"],
     ["eq", "$key", "staging/unique-version"],
   ]);
+});
+test("phone-image orientation preserves the canvas aspect ratio for pins", () => {
+  assert.deepEqual(orientedDimensions(4000, 3000, 6), { width: 3000, height: 4000 });
+  assert.deepEqual(orientedDimensions(4000, 3000, 8), { width: 3000, height: 4000 });
+  assert.deepEqual(orientedDimensions(4000, 3000, 3), { width: 4000, height: 3000 });
 });

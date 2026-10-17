@@ -467,7 +467,7 @@ function ReviewAsset({
         </div>
 
         <aside
-          className={`${mobileComments ? "absolute inset-y-17 right-0 z-20 flex w-[min(360px,92vw)] shadow-2xl" : "hidden w-[350px] lg:flex"} flex-col border-l border-line bg-surface`}
+          className={`${mobileComments ? "absolute top-17 right-0 bottom-0 z-20 flex w-[min(360px,92vw)] shadow-2xl" : "hidden"} flex-col border-l border-line bg-surface lg:static lg:z-auto lg:flex lg:w-[350px] lg:shrink-0 lg:shadow-none`}
           aria-label="Feedback"
         >
           <div className="flex items-center justify-between border-b border-line px-5 py-4">

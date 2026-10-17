@@ -56,6 +56,11 @@ export function uploadConditions(record: UploadRecord): [string, ...unknown[]][]
     ["eq", "$key", record.uploadKey],
   ];
 }
+export function orientedDimensions(width: number, height: number, orientation = 1) {
+  return orientation >= 5 && orientation <= 8
+    ? { width: height, height: width }
+    : { width, height };
+}
 export function asUploadRecord(v: Record<string, unknown>): UploadRecord {
   return {
     id: v.id as string,
@@ -123,7 +128,7 @@ export const s3Storage: Storage = {
         (image.pages ?? 1) > 1
       )
         throw new Error("Unsupported dimensions");
-      dimensions = { width: image.width, height: image.height };
+      dimensions = orientedDimensions(image.width, image.height, image.orientation);
     } catch {
       throw new ApiError(
         422,
